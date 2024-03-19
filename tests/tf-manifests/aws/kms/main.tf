@@ -59,5 +59,4 @@ resource "aws_kms_key_policy" "cluster_kms_key_policy" {
     ]
     Version = "2012-10-17"
   })
-
 }

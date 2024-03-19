@@ -56,7 +56,6 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   cloud_region           = var.aws_region
   aws_account_id         = data.aws_caller_identity.current.account_id
   aws_billing_account_id = data.aws_caller_identity.current.account_id
-  availability_zones     = var.aws_availability_zones
   properties = merge(
     {
       rosa_creator_arn = data.aws_caller_identity.current.arn
@@ -70,6 +69,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   # min_replicas                                    = var.autoscaling.min_replicas
   # max_replicas                                    = var.autoscaling.max_replicas
   aws_subnet_ids               = var.aws_subnet_ids
+  availability_zones     = var.aws_availability_zones
   private                      = var.private
   compute_machine_type         = var.compute_machine_type
   etcd_encryption              = var.etcd_encryption
