@@ -43,7 +43,7 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 		tcService.Destroy()
 	})
 
-	It("can create/edit/delete - [id:72521]", ci.High, func() {
+	It("can create/edit/delete - [id:72521][id:72955]", ci.High, func() {
 		name := "tc-72521"
 		tcCount := 1
 		By("Create one tuning config")
