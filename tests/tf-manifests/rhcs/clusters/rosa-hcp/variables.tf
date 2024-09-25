@@ -188,3 +188,8 @@ variable "full_resources" {
   type    = bool
   default = false
 }
+
+variable "worker_disk_size" {
+  type    = number
+  default = null
+}

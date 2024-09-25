@@ -539,6 +539,18 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 				args.Ec2MetadataHttpTokens = helper.StringPointer("invalid")
 			}, "Expected a valid param. Options are [optional required]. Got invalid.")
 		})
+
+		It("validate worker disk size - [id:76344]", ci.Low, func() {
+			By("Create cluster with invalid worker disk size")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.WorkerDiskSize = helper.IntPointer(10)
+			}, "Must be between 75 GiB and 16384 GiB")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.WorkerDiskSize = helper.IntPointer(20000)
+			}, "Must be between 75 GiB and 16384 GiB")
+
+			// TODO terraform plan doesn't have validation
+		})
 	})
 
 	Describe("The EOL OCP version validation", ci.Day1Negative, func() {

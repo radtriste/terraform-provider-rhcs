@@ -762,6 +762,78 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		})
 
+	It("can create machinepool with disk size - [id:69144]", ci.High, func() {
+		By("Create additional machinepool with disk size specified")
+		replicas := 1
+		machineType := "r5.xlarge"
+		subnetId := vpcOutput.PrivateSubnets[0]
+		name := helper.GenerateRandomName("np-69144", 2)
+		diskSize := 249
+		mpArgs := &exec.MachinePoolArgs{
+			Cluster:            helper.StringPointer(clusterID),
+			AutoscalingEnabled: helper.BoolPointer(false),
+			Replicas:           helper.IntPointer(replicas),
+			SubnetID:           helper.StringPointer(subnetId),
+			MachineType:        helper.StringPointer(machineType),
+			AutoRepair:         helper.BoolPointer(true),
+			Name:               helper.StringPointer(name),
+			DiskSize:           helper.IntPointer(diskSize),
+		}
+
+		_, err := mpService.Apply(mpArgs)
+		Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			_, err = mpService.Destroy()
+			Expect(err).ToNot(HaveOccurred())
+		}()
+
+		By("Verify the parameters of the created machinepool")
+		mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mpResponseBody.AWSNodePool().RootVolume().Size()).To(Equal(diskSize))
+		Expect(mpResponseBody.AWSNodePool().InstanceType()).To(Equal(machineType))
+
+		By("Update disksize is not allowed ")
+		mpArgs = &exec.MachinePoolArgs{
+			Cluster:            helper.StringPointer(clusterID),
+			AutoscalingEnabled: helper.BoolPointer(false),
+			Replicas:           helper.IntPointer(replicas),
+			SubnetID:           helper.StringPointer(subnetId),
+			MachineType:        helper.StringPointer(machineType),
+			AutoRepair:         helper.BoolPointer(true),
+			Name:               helper.StringPointer(name),
+			DiskSize:           helper.IntPointer(320),
+		}
+		output, err := mpService.Apply(mpArgs)
+		Expect(err).To(HaveOccurred())
+		Expect(output).Should(ContainSubstring("Attribute aws_node_pool.disk_size, cannot be changed from 249 to 320"))
+
+		By("Destroy machinepool")
+		_, err = mpService.Destroy()
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Create another machinepool without disksize will create another machinepool with default value")
+		name = helper.GenerateRandomName("np-69144", 2)
+		mpArgs = &exec.MachinePoolArgs{
+			Cluster:            helper.StringPointer(clusterID),
+			AutoscalingEnabled: helper.BoolPointer(false),
+			Replicas:           helper.IntPointer(replicas),
+			SubnetID:           helper.StringPointer(subnetId),
+			MachineType:        helper.StringPointer("m5.2xlarge"),
+			AutoRepair:         helper.BoolPointer(true),
+			Name:               helper.StringPointer(name),
+		}
+
+		_, err = mpService.Apply(mpArgs)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Verify the parameters of the created machinepool")
+		mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mpResponseBody.AWSNodePool().RootVolume().Size()).To(Equal(300))
+		Expect(mpResponseBody.AWSNodePool().InstanceType()).To(Equal("m5.2xlarge"))
+	})
+
 	Context("can validate", func() {
 		validateMPArgAgainstErrorSubstrings := func(mpName string, updateFields func(args *exec.MachinePoolArgs), errSubStrings ...string) {
 			mpArgs := getDefaultMPArgs(mpName)
@@ -1027,6 +1099,18 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 				mpService.Destroy()
 			}
+		})
+
+		It("worker disk size field - [id:76345]", ci.Low, func() {
+			By("Try to create a nodepool with invalid worker disk size")
+			mpName := helper.GenerateRandomName("np-76345", 2)
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.DiskSize = helper.IntPointer(10)
+			}, "Must be between 75 GiB and 16384 GiB")
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.DiskSize = helper.IntPointer(20000)
+			}, "Must be between 75 GiB and 16384 GiB")
+			// TODO terraform plan doesn't have validation
 		})
 	})
 
