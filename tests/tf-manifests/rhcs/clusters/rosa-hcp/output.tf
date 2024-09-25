@@ -17,3 +17,7 @@ output "properties" {
 output "tags" {
   value = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.tags
 }
+
+output "worker_disk_size" {
+  value = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.worker_disk_size
+}
